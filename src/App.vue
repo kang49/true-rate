@@ -1,165 +1,151 @@
-<script setup lang="ts">
-import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
-
-const greetMsg = ref("");
-const name = ref("");
-
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsg.value = await invoke("greet", { name: name.value });
-}
-</script>
-
 <template>
+
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/src/assets/styles.css" rel="stylesheet">
   </head>
-  <main class="container">
-    <h1 class="text-blue-300 text-[26px] font-bold">Welcome to Tauri + Vue</h1>
 
-    <div class="row">
-      <a href="https://vite.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-      </a>
+  <body>
+    <div class="w-full min-h-[calc(100dvh)] bg-[#0d0721]">
+      <div class="w-full px-[20px] pt-[20px]">
+        <h1 class="text-white text-[26px] font-bold">True Rate</h1>
+        <div class="flex items-center">
+          <h1 class="text-white text-[26px] font-bold">Designed for</h1>
+          <img src="/img/Wise_Logo_512x124.svg?url." class="h-[22px] ml-[7px]"></img>
+        </div>
+        <h4 class="w-full flex justify-center text-white text-[22px] font-bold  pt-[50px]">
+          Origin
+        </h4>
+        <div class="w-full flex justify-center pt-[20px]">
+          <div class="relative w-[100px]">
+            <!-- Dropdown trigger -->
+            <div class="w-[100px] h-[40px] bg-white/10 rounded-l-[10px] flex items-center px-[10px] cursor-pointer"
+              @click="toggleDropdown('origin')">
+              <div class="flex items-center">
+                <i class="rounded-[3px]" :class="currencies.find(currencies => currencies.code === origin_currency.code)?.icon"></i>
+                <h4 class="text-white font-bold ml-[5px] select-none">{{ origin_currency.code }}</h4>
+              </div>
+              <div class="w-full text-right">
+                <i class="fas fa-angle-down text-white transition-transform duration-200"
+                  :class="{ 'rotate-180': C_dropdown.find(i => i.where === 'origin')?.isOpen }"></i>
+              </div>
+            </div>
+
+            <!-- Dropdown menu -->
+            <div v-if="C_dropdown.find(i => i.where === 'origin')?.isOpen"
+              class="max-h-[300px] absolute top-[45px] left-0 w-full bg-white/20 rounded-[10px] select-none overflow-scroll scrollbar-hide shadow-md backdrop-blur-sm z-10">
+              <ul>
+                <li v-for="(currency, index) in currencies" :key="index" @click="selectCurrency(currency, 'origin'), toggleDropdown('origin')"
+                  class="flex items-center px-[10px] py-[8px] cursor-pointer hover:bg-white/30 rounded-[8px]">
+                  <i :class="currency.icon + ' rounded-[3px]'"></i>
+                  <span class="text-white font-medium ml-[5px]">{{ currency.code }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <!-- Origin Input -->
+          <input v-model="origin_currency.amount" @change="Calculator('origin', origin_currency.amount)" class="w-[300px] h-[40px] bg-white/10 rounded-r-[10px] outline-none text-white font-bold" type="text"></input>
+        </div>
+      </div>
     </div>
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
-
-    <form class="row" @submit.prevent="greet">
-      <input id="greet-input" v-model="name" placeholder="Enter a name..." />
-      <button type="submit">Greet</button>
-    </form>
-    <p>{{ greetMsg }}</p>
-  </main>
+  </body>
 </template>
 
-<style scoped>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
+<script setup lang="ts">
+import { ref } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+import {
+  warn,
+  debug,
+  trace,
+  info,
+  error,
+  attachConsole,
+  attachLogger,
+} from '@tauri-apps/plugin-log';
 
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #249b73);
-}
+let C_dropdown = ref([{ where: "origin", isOpen: false }, { where: "AUD", isOpen: false }]);
+let origin_currency = ref({ code: "USD", amount: 0 });
+let target_currencies = ref([{ code: "EUR", amount: 0 }, { code: "GBP", amount: 0 }]);
 
-</style>
-<style>
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
+const currencies = [
+  { code: "AUD", icon: "fi fi-au" },
+  { code: "BGN", icon: "fi fi-bg" },
+  { code: "BRL", icon: "fi fi-br" },
+  { code: "CAD", icon: "fi fi-ca" },
+  { code: "CHF", icon: "fi fi-ch" },
+  { code: "CNY", icon: "fi fi-cn" },
+  { code: "CZK", icon: "fi fi-cz" },
+  { code: "DKK", icon: "fi fi-dk" },
+  { code: "EUR", icon: "fi fi-eu" },
+  { code: "GBP", icon: "fi fi-gb" },
+  { code: "HKD", icon: "fi fi-hk" },
+  { code: "HUF", icon: "fi fi-hu" },
+  { code: "IDR", icon: "fi fi-id" },
+  { code: "ILS", icon: "fi fi-il" },
+  { code: "INR", icon: "fi fi-in" },
+  { code: "JPY", icon: "fi fi-jp" },
+  { code: "MYR", icon: "fi fi-my" },
+  { code: "MXN", icon: "fi fi-mx" },
+  { code: "NOK", icon: "fi fi-no" },
+  { code: "NZD", icon: "fi fi-nz" },
+  { code: "PHP", icon: "fi fi-ph" },
+  { code: "PLN", icon: "fi fi-pl" },
+  { code: "RON", icon: "fi fi-ro" },
+  { code: "SEK", icon: "fi fi-se" },
+  { code: "SGD", icon: "fi fi-sg" },
+  { code: "TRY", icon: "fi fi-tr" },
+  { code: "USD", icon: "fi fi-us" },
+  { code: "ZAR", icon: "fi fi-za" },
+  { code: "UGX", icon: "fi fi-ug" },
+  { code: "AED", icon: "fi fi-ae" },
+  { code: "CNY", icon: "fi fi-cn" },
+];
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
+function Calculator(where: string, raw_amount: number) {
+  debug(raw_amount.toString());
+  debug(where);
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+  const result: number = new Function("return " + raw_amount.toString())();
+  if (where === 'origin') {
+    origin_currency.value.amount = result;
+  } else {
+    const target = target_currencies.value.find(i => i.code === where);
+    if (target) {
+      target.amount = result;
+    } else {
+      warn(`Target currency with code="${where}" not found.`);
+    }
   }
+  debug(result.toString());
+}
 
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
+function toggleDropdown(where: string) {
+  const dropdown = C_dropdown.value.find(i => i.where === where);
+  if (dropdown) {
+    dropdown.isOpen = !dropdown.isOpen;
+  } else {
+    warn(`Dropdown with where="${where}" not found.`);
   }
 }
 
-</style>
+async function selectCurrency(currency: { code: string; icon: string }, where: "origin" | "target") {
+  switch (where) {
+    case "origin":
+      origin_currency.value.code = currency.code;
+      // Call the Rust command
+      const response: string = await invoke<string>("greet", {
+        name: origin_currency.value.code,
+      });
+      debug(`Response from Rust: ${response}`);
+      debug(C_dropdown.value.find(i => i.where === "origin")?.isOpen.toString() || "false");
+      break;
+    case "target":
+      if (!target_currencies.value.includes({ code: currency.code, amount: 0 })) {
+        target_currencies.value.push({ code: currency.code, amount: 0 });
+      }
+      break;
+  }
+}
+</script>
